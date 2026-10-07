@@ -14,8 +14,8 @@
   --crit:#b93434; --crit-soft:#f7e5e5;
   --hot:#8a5a00; --hot-soft:#f7edd7;
   --good:#0a7d0a;
-  --f1:#79b9a2; --f2:#54a68c; --f3:#379276; --f4:#1f7d62; --f5:#0b654f;
-  --st-reativacao:#c8552c; --st-perdido:#84867f; --st-b2b:#4a3aa7;
+  --f1:#65bf9f; --f2:#4ea989; --f3:#369375; --f4:#197e61; --f5:#00694d; --f6:#00553a; --f7:#004229; --f8:#002f18;
+  --st-nutricao:#b7791f; --st-perdido:#84867f; --st-b2b:#4a3aa7;
   --card-shadow:0 1px 2px rgba(26,35,50,.06);
   --overlay:rgba(20,26,23,.42);
   --chip-ink:#fff;
@@ -30,8 +30,8 @@
     --crit:#e66767; --crit-soft:#331d1d;
     --hot:#e8b04b; --hot-soft:#33290f;
     --good:#3dbb3d;
-    --f1:#2f8a72; --f2:#4aa389; --f3:#68bda1; --f4:#8ed7bc; --f5:#b6f0d8;
-    --st-reativacao:#e07b52; --st-perdido:#8f9189; --st-b2b:#9085e9;
+    --f1:#00694d; --f2:#157c5f; --f3:#308f71; --f4:#47a283; --f5:#5cb696; --f6:#70caa9; --f7:#85dfbd; --f8:#99f4d1;
+    --st-nutricao:#e8b04b; --st-perdido:#8f9189; --st-b2b:#9085e9;
     --card-shadow:0 1px 2px rgba(0,0,0,.35);
     --overlay:rgba(0,0,0,.55);
     --chip-ink:#111412;
@@ -217,6 +217,12 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 .dr-actions{display:flex;gap:8px;padding:10px 16px 12px;border-top:1px solid var(--line);flex-wrap:wrap}
 .btn.danger{color:var(--crit);border-color:var(--crit)}
 .hint{font-size:11.5px;color:var(--muted);margin-top:3px}
+.onbbox{background:var(--surface-2);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.onbt{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.onbpago{display:flex;align-items:center;gap:10px;margin-bottom:4px;font-size:13px;color:var(--ink-2)}
+.onbpago input{max-width:170px}
+.onbbox .rot .rt{font-size:13px}
+.onbbox .rot .hint{display:inline-block}
 .dupe{margin-top:6px;padding:8px 11px;border-radius:9px;background:var(--warm-soft);font-size:13px;
   display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .dupe b{color:var(--warm)}
@@ -258,7 +264,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
     <select id="smart" title="Filtros inteligentes baseados no playbook"></select>
     <button class="fchip" data-f="notaA">Nota A</button>
     <button class="fchip" data-f="quente">⭐ Quente</button>
-    <button class="fchip" data-f="risco">⚠ Risco</button>
+    <button class="fchip" data-f="risco">⚠ Atenção</button>
     <button class="fchip" data-f="arch">Arquivados</button>
   </div>
 </div>
@@ -285,37 +291,71 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 "use strict";
 /* ================= estado ================= */
 var STAGES=[
- {id:"novo",label:"Novo",dot:"var(--f1)",core:true},
- {id:"conectado",label:"Conectado",dot:"var(--f2)",core:true},
- {id:"negociacao",label:"Negociação",dot:"var(--f3)",core:true},
- {id:"proposta",label:"Proposta enviada",dot:"var(--f4)",core:true},
- {id:"cliente",label:"Cliente",dot:"var(--f5)",core:true},
- {id:"reativacao",label:"Reativação",dot:"var(--st-reativacao)",core:false},
- {id:"perdido",label:"Perdido",dot:"var(--st-perdido)",core:false},
- {id:"b2b",label:"B2B / Parceria",dot:"var(--st-b2b)",core:false},
+ {id:"novo",label:"Novo contato",hint:"entrou e ainda não respondeu",dot:"var(--f1)",core:true},
+ {id:"conversa",label:"Em conversa",hint:"respondeu; qualificando",dot:"var(--f2)",core:true},
+ {id:"qualificado",label:"Qualificado",hint:"no perfil; falta marcar a apresentação",dot:"var(--f3)",core:true},
+ {id:"apresentacao",label:"Apresentação",hint:"marcada ou feita; aguardando o próximo passo",dot:"var(--f4)",core:true},
+ {id:"cadastro",label:"Cadastro / CRECI",hint:"conta criada; conferência em andamento",dot:"var(--f5)",core:true},
+ {id:"pagamento",label:"Pagamento",hint:"CRECI aprovado; falta pagar",dot:"var(--f6)",core:true},
+ {id:"ativacao",label:"Ativação D0–D7",hint:"pagou; primeiros sete dias",dot:"var(--f7)",core:true},
+ {id:"cliente",label:"Cliente ativo",hint:"ativou; acompanhamento",dot:"var(--f8)",core:true},
+ {id:"nutricao",label:"Nutrição",hint:"“agora não”, com data para voltar",dot:"var(--st-nutricao)",core:false},
+ {id:"perdido",label:"Perdido",hint:"saiu do funil com um motivo",dot:"var(--st-perdido)",core:false},
+ {id:"b2b",label:"Imobiliária / Parceria",hint:"B2B e parceiros",dot:"var(--st-b2b)",core:false},
 ];
 const STAGE_BY={}; STAGES.forEach(s=>STAGE_BY[s.id]=s);
-const FUNNEL_COLORS=["var(--f1)","var(--f2)","var(--f3)","var(--f4)","var(--f5)"];
-const ORIGENS=["Disparo WhatsApp","Indicação","Café presencial","Instagram","Site / Anúncio","Ex-assinante","Cadastro manual","Outro"];
+const LEGACY_STAGE={conectado:"conversa",negociacao:"qualificado",proposta:"pagamento",reativacao:"conversa"};
+const FUNNEL_COLORS=["var(--f1)","var(--f2)","var(--f3)","var(--f4)","var(--f5)","var(--f6)","var(--f7)","var(--f8)"];
+const ORIGENS=["Disparo WhatsApp","Anúncio (tráfego pago)","Indicação","Ex-cliente","Café presencial","Instagram","Imobiliária","Cadastro manual","Outro"];
+const MOTIVOS_PERDA=["Fora da região","Não é corretor ativo","Sem interesse","Já tem solução / outro foco","Não vê valor / preço","Sem dinheiro agora","Cancelou","Não contatar"];
 
 /* régua do playbook: ao entrar numa etapa, qual é a próxima ação padrão */
 const REGUA={
- novo:{prox:"Fazer 1º contato (mensagem de abertura)",dias:0},
- conectado:{prox:"Fazer diagnóstico: região, nº de imóveis, como capta hoje",dias:0},
- negociacao:{prox:"Enviar resumo do valor + convite para café/demo",dias:0,nota:"A"},
- proposta:{prox:"Confirmar pagamento do link em até 24h",dias:1,nota:"A"},
- cliente:{prox:"Onboarding: garantir 1º anúncio publicado no app",dias:1,nota:"A"},
- reativacao:{prox:"Oferta de volta: 1º mês R$149,90",dias:0},
+ novo:{prox:"1º contato com motivo (anúncio, indicação ou imóvel do nicho dele)",dias:0},
+ conversa:{prox:"Qualificar: região, venda ou locação, como capta hoje",dias:0},
+ qualificado:{prox:"Marcar apresentação: café ou call de 15 min com tela aberta",dias:1,nota:"A"},
+ apresentacao:{prox:"Pós-apresentação: tirar dúvidas e pedir o cadastro no app",dias:1,nota:"A"},
+ cadastro:{prox:"Acompanhar cadastro/CRECI com o Breno até aprovar",dias:1,nota:"A"},
+ pagamento:{prox:"Enviar o link e confirmar o pagamento em até 24h",dias:1,nota:"A"},
+ ativacao:{prox:"Onboarding D0: boas-vindas e confirmar acesso liberado",dias:0,nota:"A"},
+ cliente:{prox:"Check de valor do mês + pedir uma indicação",dias:30,nota:"A"},
+ nutricao:{prox:"Retomar na data combinada",dias:14},
  perdido:null,
- b2b:{prox:"Agendar call de parceria",dias:1,nota:"A"},
+ b2b:{prox:"Agendar conversa de parceria",dias:1,nota:"A"},
 };
+
+/* onboarding D0–D7: cada passo vence em (data do pagamento + dia) */
+const ONB=[
+ {k:"d0",dia:0,t:"Boas-vindas e acesso liberado confirmado (fez login no app)"},
+ {k:"d1",dia:1,t:"Tour de 15 min com tela aberta: busca, filtros, favoritos, compartilhar material"},
+ {k:"d2",dia:2,t:"Mandar 3 imóveis do nicho dele (região, tipo e faixa de preço)"},
+ {k:"d3",dia:3,t:"Conferir o 1º compartilhamento: já divulgou algum imóvel TOQ?"},
+ {k:"d5",dia:5,t:"1ª visita ou proposta pelo app — destravar se ainda não fez"},
+ {k:"d7",dia:7,t:"Check de valor (o que achou?) + pedir 1 indicação → Cliente ativo"},
+];
+function pagoEm(c){
+  const n=(c.notas||[]).filter(x=>x&&x.tipo==="pago").pop();
+  return n?n.ts:"";
+}
+function onbFeitos(c){
+  const f={}; (c.notas||[]).forEach(x=>{ if(x&&x.tipo==="onb") f[x.step]=x.ts; }); return f;
+}
+function onbStatus(c){
+  const pago=pagoEm(c); if(!pago) return null;
+  const feitos=onbFeitos(c), d=daysSince(pago);
+  const pend=ONB.filter(s=>!feitos[s.k]);
+  const prox=pend[0]||null;
+  const venc=prox?isoPlusFrom(pago,prox.dia):"";
+  return {pago,d,feitos,pend,prox,venc,atrasado:!!prox&&venc<todayISO};
+}
 
 let CONTACTS={};
 let readonly=true, LOADED=false, lastLoad=0;
 let USER="Equipe";
 let view="hoje", q="", filters={notaA:false,quente:false,risco:false,arch:false,smart:""};
 let colShow={}, funilSel=null, openId=null, createMode=false, draft=null;
-const todayISO=new Date().toISOString().slice(0,10);
+function isoLocal(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+const todayISO=isoLocal(new Date());
 let agendaState={done:{},todos:[]};
 try{
   const p=JSON.parse(localStorage.getItem("crmtoq-ui")||"{}");
@@ -329,8 +369,9 @@ function norm(s){return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").to
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function fmtD(iso){ if(!iso)return ""; const p=String(iso).slice(0,10).split("-"); return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:iso; }
 function nomeOf(c){ const n=(c.nome||"").trim(); return n && n.toLowerCase()!=="(falta nome)" ? n : ""; }
-function daysSince(iso){ if(!iso) return 9999; const d=new Date(String(iso).slice(0,10)+"T12:00:00"); return Math.max(0,Math.floor((Date.now()-d.getTime())/864e5)); }
-function isoPlus(days){ const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+function daysSince(iso){ if(!iso) return 9999; const d=new Date(String(iso).slice(0,10)+"T12:00:00"), t=new Date(todayISO+"T12:00:00"); return Math.max(0,Math.round((t-d)/864e5)); }
+function isoPlus(days){ const d=new Date(); d.setDate(d.getDate()+days); return isoLocal(d); }
+function isoPlusFrom(iso,days){ const d=new Date(String(iso).slice(0,10)+"T12:00:00"); d.setDate(d.getDate()+days); return isoLocal(d); }
 function fmtTel(digits){
   let t=digits;
   if(t.length===13) return `(${t.slice(2,4)}) ${t.slice(4,9)}-${t.slice(9)}`;
@@ -341,16 +382,21 @@ function fmtTel(digits){
 }
 
 /* ---------- filtros inteligentes (playbook) ---------- */
-const ETAPAS_ATIVAS=["conectado","negociacao","proposta","reativacao","b2b"];
+const ETAPAS_ATIVAS=["conversa","qualificado","apresentacao","cadastro","pagamento","b2b"];
+const isEx=c=>/^ex-/i.test(c.origem||"");
+const isInd=c=>/^indica/i.test(c.origem||"");
 const SMART={
+ onb:{label:"🚀 Onboarding com passo vencido",fn:c=>c.etapa==="ativacao"&&!!(onbStatus(c)||{}).atrasado},
+ atencao:{label:"⚠ Cliente com Atenção",fn:c=>(c.etapa==="cliente"||c.etapa==="ativacao")&&c.risco},
+ pagamento:{label:"Pagamento pendente",fn:c=>c.etapa==="pagamento"},
+ cadastro:{label:"Cadastro/CRECI parado",fn:c=>c.etapa==="cadastro"&&daysSince(c.ultimo)>=2},
  followup:{label:"Precisa de follow-up",fn:c=>ETAPAS_ATIVAS.includes(c.etapa)&&!c.proxData&&daysSince(c.ultimo)>=3},
  quentesem:{label:"⭐ Quente sem próxima ação",fn:c=>c.quente&&!c.proxData&&c.etapa!=="perdido"},
  vencida:{label:"Ação vencida",fn:c=>!!c.proxData&&c.proxData<todayISO},
  hojeacao:{label:"Ação marcada para hoje",fn:c=>c.proxData===todayISO},
- proposta:{label:"Proposta sem pagamento",fn:c=>c.etapa==="proposta"},
- esfriou:{label:"Respondeu e esfriou (5+ dias)",fn:c=>c.etapa==="conectado"&&!c.proxData&&daysSince(c.ultimo)>=5},
- risco:{label:"Cliente em risco de churn",fn:c=>c.etapa==="cliente"&&c.risco},
- exass:{label:"Ex-assinante parado (14+ dias)",fn:c=>c.etapa==="reativacao"&&daysSince(c.ultimo)>=14},
+ nutri:{label:"Nutrição: data de voltar chegou",fn:c=>c.etapa==="nutricao"&&(!c.proxData||c.proxData<=todayISO)},
+ esfriou:{label:"Em conversa e esfriou (5+ dias)",fn:c=>c.etapa==="conversa"&&!c.proxData&&daysSince(c.ultimo)>=5},
+ exass:{label:"Ex-cliente fora da base",fn:c=>isEx(c)&&c.etapa!=="cliente"&&c.etapa!=="ativacao"&&c.etapa!=="perdido"},
  mudo:{label:"Nunca respondeu (re-disparo)",fn:c=>c.etapa==="novo"&&daysSince(c.ultimo)>=7},
  semnome:{label:"Falta nome",fn:c=>!nomeOf(c)},
 };
@@ -392,13 +438,17 @@ const elFunil=document.getElementById("viewFunil");
 function chipsHtml(c){
   let h=`<span class="chip nota ${c.nota==="A"?"notaA":""}">${esc(c.nota||"C")}</span>`;
   if(c.quente) h+=`<span class="chip hot">⭐ quente</span>`;
-  if(c.risco) h+=`<span class="chip risk">⚠ risco</span>`;
+  if(c.risco) h+=`<span class="chip risk">⚠ atenção</span>`;
+  if(isEx(c)) h+=`<span class="chip nota">ex-cliente</span>`;
+  if(isInd(c)) h+=`<span class="chip nota">indicação</span>`;
   return h;
 }
 function cardHtml(c){
   const nm=nomeOf(c);
   let action="";
-  if(c.proxData) action=`<span class="due ${c.proxData<todayISO?"late":""}">📅 ${fmtD(c.proxData)}${c.proxData<todayISO?" · vencida":""}</span>`;
+  const ob=c.etapa==="ativacao"?onbStatus(c):null;
+  if(ob) action=ob.prox?`<span class="due ${ob.atrasado?"late":""}">🚀 D${ob.d} · ${ob.prox.k.toUpperCase()} ${ob.atrasado?"atrasado":"vence "+fmtD(ob.venc)}</span>`:`<span class="due">🚀 onboarding completo</span>`;
+  else if(c.proxData) action=`<span class="due ${c.proxData<todayISO?"late":""}">📅 ${fmtD(c.proxData)}${c.proxData<todayISO?" · vencida":""}</span>`;
   else if(ETAPAS_ATIVAS.includes(c.etapa)||c.quente) action=`<span class="noact">sem próxima ação</span>`;
   return `<div class="card" draggable="${readonly?"false":"true"}" data-id="${esc(c.id)}" role="button" tabindex="0">
     <div class="nm">${nm?`<span>${esc(nm)}</span>`:`<span class="noname">(falta nome)</span>`}${chipsHtml(c)}</div>
@@ -416,7 +466,7 @@ function renderKanban(){
     const shown=cs.slice(0,lim);
     h+=`<section class="col" data-stage="${st.id}">
       <div class="col-h"><span class="cdot" style="background:${st.dot}"></span>
-        <span class="cname">${st.label}</span><span class="ccount">${cs.length}</span></div>
+        <span class="cname" title="${esc(st.hint||"")}">${st.label}</span><span class="ccount">${cs.length}</span></div>
       <div class="cards">${shown.map(cardHtml).join("")||`<div class="empty-col">vazio</div>`}</div>
       ${cs.length>lim?`<button class="more" data-more="${st.id}">mostrar mais ${Math.min(50,cs.length-lim)} de ${cs.length-lim}</button>`:""}
     </section>`;
@@ -429,7 +479,8 @@ function rotinaDoDia(){
   const dow=new Date().getDay();
   const r=[
     {id:"r1",t:"Responder todo lead que chegar em até 5 minutos"},
-    {id:"r2",t:"Cobrar todas as propostas / links de pagamento em aberto"},
+    {id:"r0",t:"Fazer os passos de onboarding do dia (Ativação D0–D7) — prioridade nº 1"},
+    {id:"r2",t:"Cobrar todos os links de pagamento em aberto"},
     {id:"r3",t:"Fazer os follow-ups da agenda de hoje (lista abaixo)"},
     {id:"r4",t:"Registrar anotação no CRM em cada conversa feita hoje"},
   ];
@@ -442,12 +493,14 @@ function sugestoesDoDia(){
   const all=Object.values(allContacts()).filter(c=>!c.arch&&c.etapa!=="perdido");
   const semAgenda=c=>!c.proxData||c.proxData>todayISO;
   const rules=[
-   {fn:c=>c.etapa==="proposta"&&semAgenda(c),why:c=>`Link enviado, sem pagamento há ${daysSince(c.ultimo)}d`,sug:"Cobrar pagamento do link"},
+   {fn:c=>c.etapa==="cliente"&&c.risco&&semAgenda(c),why:c=>`Cliente com Atenção, sem contato há ${daysSince(c.ultimo)}d`,sug:"Ligar e resolver o problema antes da renovação"},
+   {fn:c=>c.etapa==="pagamento"&&semAgenda(c),why:c=>`Link enviado, sem pagamento há ${daysSince(c.ultimo)}d`,sug:"Cobrar o pagamento do link"},
+   {fn:c=>c.etapa==="cadastro"&&semAgenda(c),why:c=>`Cadastro/CRECI parado há ${daysSince(c.ultimo)}d`,sug:"Ver com o Breno o que falta e destravar"},
    {fn:c=>c.quente&&!c.proxData,why:()=>"Lead quente sem próxima ação marcada",sug:"Definir próximo passo"},
-   {fn:c=>c.etapa==="negociacao"&&!c.proxData&&daysSince(c.ultimo)>=3,why:c=>`Negociação parada há ${daysSince(c.ultimo)}d`,sug:"Retomar com motivo novo (case, notícia de Alphaville)"},
-   {fn:c=>c.etapa==="cliente"&&c.risco&&daysSince(c.ultimo)>=5,why:c=>`Cliente em risco, sem contato há ${daysSince(c.ultimo)}d`,sug:"Check-in de retenção"},
-   {fn:c=>c.etapa==="conectado"&&!c.proxData&&c.nota!=="C"&&daysSince(c.ultimo)>=5,why:c=>`Respondeu e esfriou (${daysSince(c.ultimo)}d)`,sug:"Follow-up com conteúdo novo"},
-   {fn:c=>c.etapa==="reativacao"&&semAgenda(c)&&daysSince(c.ultimo)>=30,why:c=>`Ex-assinante sem contato há ${daysSince(c.ultimo)}d`,sug:"Oferta de volta: 1º mês R$149,90"},
+   {fn:c=>(c.etapa==="qualificado"||c.etapa==="apresentacao")&&!c.proxData&&daysSince(c.ultimo)>=3,why:c=>`Parado há ${daysSince(c.ultimo)}d depois de qualificado`,sug:"Retomar com motivo novo (imóvel do nicho, case, novidade)"},
+   {fn:c=>c.etapa==="nutricao"&&(!c.proxData||c.proxData<=todayISO),why:()=>"Chegou a data de voltar a falar",sug:"Retomar o assunto combinado"},
+   {fn:c=>c.etapa==="conversa"&&!c.proxData&&c.nota!=="C"&&daysSince(c.ultimo)>=5,why:c=>`Respondeu e esfriou (${daysSince(c.ultimo)}d)`,sug:"Follow-up com conteúdo novo"},
+   {fn:c=>isEx(c)&&c.etapa!=="cliente"&&c.etapa!=="ativacao"&&c.etapa!=="perdido"&&semAgenda(c)&&daysSince(c.ultimo)>=30,why:c=>`Ex-cliente sem contato há ${daysSince(c.ultimo)}d`,sug:"Oferta de volta: 1º mês R$149,90"},
   ];
   const seen={}, out=[];
   for(const r of rules){
@@ -489,6 +542,26 @@ function renderHoje(){
     const done=!!agendaState.done[r.id];
     return `<label class="rot ${done?"done":""}"><input type="checkbox" data-rot="${r.id}" ${done?"checked":""} ${readonly?"disabled":""}><span class="rt">${esc(r.t)}</span></label>`;
   }).join("");
+  h+=`</div>`;
+
+  const onbKey=o=>(o.ob&&o.ob.atrasado?"0":"1")+((o.ob&&o.ob.venc)||"9999");
+  const onbs=all.filter(c=>c.etapa==="ativacao").map(c=>({c,ob:onbStatus(c)})).sort((a,b)=>onbKey(a)<onbKey(b)?-1:1);
+  h+=`<div class="sec"><h2>🚀 Onboarding D0–D7 <span class="cnt">${onbs.length}</span></h2>
+    <p class="ssub">Quem pagou nos últimos 7 dias. Um passo por dia; o que passa do dia fica em vermelho. Churn se evita aqui.</p>`;
+  h+=onbs.length?onbs.map(({c,ob})=>{
+    const nm=nomeOf(c), waTel=String(c.tel||"").replace(/\D/g,"");
+    const txt=!ob?`<span class="sug-why">Sem data de pagamento registrada</span> — abra o contato e marque “Pagou em”`
+      :ob.prox?`<b>D${ob.d}</b> · ${esc(ob.prox.k.toUpperCase())}: ${esc(ob.prox.t)} · ${ob.atrasado?`<span style="color:var(--crit);font-weight:700">atrasado (venceu ${fmtD(ob.venc)})</span>`:`vence ${fmtD(ob.venc)}`}`
+      :`<b>D${ob.d}</b> · onboarding completo — mover para Cliente ativo`;
+    return `<div class="ag">
+      <span class="an" data-open="${esc(c.id)}">${nm?esc(nm):`<span class="noname">(falta nome)</span>`}</span>${chipsHtml(c)}
+      <span class="aw">${txt}</span>
+      <span class="abtns">
+        ${waTel?`<a class="wa-sm" href="https://wa.me/${esc(waTel)}" target="_blank" rel="noopener">WhatsApp</a>`:""}
+        ${!readonly&&ob&&ob.prox?`<button class="btn sm" data-onb="${esc(c.id)}" data-step="${ob.prox.k}">✓ ${ob.prox.k.toUpperCase()} feito</button>`:""}
+        ${!readonly&&ob&&!ob.prox?`<button class="btn sm" data-ativar="${esc(c.id)}">→ Cliente ativo</button>`:""}
+      </span></div>`;
+  }).join(""):`<div class="allok">Ninguém em ativação agora.</div>`;
   h+=`</div>`;
 
   h+=`<div class="sec"><h2>🔴 Atrasadas <span class="cnt">${atras.length}</span></h2>
@@ -537,11 +610,11 @@ function renderFunil(){
   for(let i=core.length-1;i>=0;i--){ run+=cnt[core[i].id]; cum[i]=run; }
   const max=Math.max(...core.map(s=>cnt[s.id]),1);
   const vencidas=all.filter(c=>c.proxData&&c.proxData<todayISO&&c.etapa!=="perdido").length;
-  const emJogo=cnt.negociacao+cnt.proposta;
+  const emJogo=cnt.qualificado+cnt.apresentacao+cnt.cadastro+cnt.pagamento;
   let h=`<div class="kpis">
-    <div class="kpi"><div class="v">${all.length}</div><div class="l">contatos ativos</div></div>
-    <div class="kpi"><div class="v">${cnt.cliente}</div><div class="l">clientes</div></div>
-    <div class="kpi"><div class="v">${emJogo}</div><div class="l">em negociação + proposta</div></div>
+    <div class="kpi"><div class="v">${cnt.cliente+cnt.ativacao}</div><div class="l">clientes (${cnt.ativacao} em ativação)</div></div>
+    <div class="kpi"><div class="v">${emJogo}</div><div class="l">qualificados até pagamento</div></div>
+    <div class="kpi"><div class="v">${cnt.nutricao}</div><div class="l">em nutrição (voltar depois)</div></div>
     <div class="kpi ${vencidas?"alert":""}"><div class="v">${vencidas}</div><div class="l">ações vencidas</div></div>
   </div>
   <div class="fchart"><h2>Funil de vendas</h2>
@@ -672,17 +745,19 @@ function renderDrawer(c){
           ${createMode?`<select id="f-origem">${origemOpts(c.origem)}</select>`:`<input id="f-origem" value="${esc(c.origem||"")}" ${dis}>`}</div>
       </div>
       <label class="togg"><input type="checkbox" id="f-quente" ${c.quente?"checked":""} ${dis}> ⭐ Lead quente</label>
-      <label class="togg"><input type="checkbox" id="f-risco" ${c.risco?"checked":""} ${dis}> ⚠ Risco de churn / atenção</label>
+      <label class="togg"><input type="checkbox" id="f-risco" ${c.risco?"checked":""} ${dis}> ⚠ Atenção (inadimplente, reclamou ou pediu para sair)</label>
       <div class="fg" style="margin-top:8px"><label for="f-resumo">Resumo da situação</label>
         <textarea id="f-resumo" ${dis}>${esc(c.resumo||"")}</textarea></div>
-      <div class="fg"><label for="f-motivo">Motivo (se perdido)</label>
-        <input id="f-motivo" value="${esc(c.motivo||"")}" ${dis}></div>
+      <div class="fg"><label for="f-motivo">Motivo (perdido ou nutrição)</label>
+        <input id="f-motivo" list="motivosList" value="${esc(c.motivo||"")}" ${dis}>
+        <datalist id="motivosList">${MOTIVOS_PERDA.map(m=>`<option value="${esc(m)}">`).join("")}</datalist></div>
       <div class="frow2">
         <div class="fg"><label for="f-prox">Próxima ação</label>
           <input id="f-prox" value="${esc(c.prox||"")}" placeholder="ex.: ligar, mandar case…" ${dis}></div>
         <div class="fg"><label for="f-proxdata">Data</label>
           <input id="f-proxdata" type="date" value="${esc(c.proxData||"")}" ${dis}></div>
       </div>
+      ${!createMode&&(c.etapa==="ativacao"||pagoEm(c))?onbBlock(c,dis):""}
       ${createMode?"":`<div class="meta">
         <span>1º contato <b>${fmtD(c.primeiro)||"—"}</b></span>
         <span>última msg <b>${fmtD(c.ultimo)||"—"}</b></span>
@@ -760,11 +835,21 @@ function renderDrawer(c){
       bindField("f-nome","nome"); bindField("f-origem","origem"); bindField("f-resumo","resumo");
       bindField("f-motivo","motivo"); bindField("f-prox","prox"); bindField("f-proxdata","proxData");
       document.getElementById("f-etapa").onchange=e=>{
-        const st=e.target.value, cur=allContacts()[openId];
-        const patch={etapa:st};
-        const r=REGUA[st];
-        if(r&&!cur.prox&&!cur.proxData){ patch.prox=r.prox; patch.proxData=isoPlus(r.dias); if(r.nota)patch.nota=r.nota; }
-        applyPatch(openId,patch); renderDrawer(allContacts()[openId]);
+        moverEtapa(openId,e.target.value); renderDrawer(allContacts()[openId]);
+      };
+      drawerRoot.querySelectorAll("[data-onbchk]").forEach(el=>{
+        el.onchange=()=>{
+          const c2=allContacts()[openId], k=el.dataset.onbchk;
+          if(el.checked) marcarOnb(openId,k);
+          else applyPatch(openId,{notas:(c2.notas||[]).filter(x=>!(x&&x.tipo==="onb"&&x.step===k))});
+          renderDrawer(allContacts()[openId]);
+        };
+      });
+      const pg=document.getElementById("f-pago");
+      if(pg) pg.onchange=()=>{
+        const c2=allContacts()[openId]; if(!pg.value) return;
+        const notas=(c2.notas||[]).filter(x=>!(x&&x.tipo==="pago")).concat([{t:"💳 Pagou — início da ativação D0–D7",ts:pg.value,por:USER,tipo:"pago"}]);
+        applyPatch(openId,{notas}); renderDrawer(allContacts()[openId]);
       };
       document.getElementById("f-nota").onchange=e=>applyPatch(openId,{nota:e.target.value});
       document.getElementById("f-quente").onchange=e=>applyPatch(openId,{quente:e.target.checked});
@@ -781,6 +866,20 @@ function renderDrawer(c){
       const b=document.getElementById("btnArch"); if(b)b.disabled=true;
     }
   }
+}
+function onbBlock(c,dis){
+  const ob=onbStatus(c), pago=pagoEm(c), feitos=onbFeitos(c);
+  return `<div class="onbbox">
+    <div class="onbt">🚀 Onboarding D0–D7 ${ob?`· hoje é D${ob.d}`:""}</div>
+    <div class="onbpago"><label for="f-pago">Pagou em</label>
+      <input id="f-pago" type="date" value="${esc(pago)}" ${dis}></div>
+    ${ONB.map(st=>{
+      const venc=pago?isoPlusFrom(pago,st.dia):"", feito=feitos[st.k];
+      const late=!feito&&venc&&venc<todayISO;
+      return `<label class="rot ${feito?"done":""}"><input type="checkbox" data-onbchk="${st.k}" ${feito?"checked":""} ${dis||(!pago?"disabled":"")}>
+        <span class="rt"><b>${st.k.toUpperCase()}</b> ${esc(st.t)}<br><span class="hint" style="${late?"color:var(--crit);font-weight:700":""}">${feito?"feito em "+fmtD(feito):venc?(late?"atrasado — venceu ":"até ")+fmtD(venc):"marque a data do pagamento"}</span></span></label>`;
+    }).join("")}
+  </div>`;
 }
 function bindField(elId,field){
   const el=document.getElementById(elId);
@@ -807,6 +906,7 @@ function doCreate(){
     prox:document.getElementById("f-prox").value,
     proxData:document.getElementById("f-proxdata").value,
   });
+  if(c.etapa==="ativacao") c.notas=(c.notas||[]).concat([{t:"💳 Pagou — início da ativação D0–D7",ts:todayISO,por:USER,tipo:"pago"}]);
   CONTACTS[c.id]=c;
   sendWrite("create",c.id,c);
   closeDrawer(); render();
@@ -826,7 +926,8 @@ function cToRow(p){
   return r;
 }
 function rowToC(r){
-  return {id:r.id,nome:r.nome||"",tel:r.tel||"",telFmt:r.telfmt||"",etapa:r.etapa||"novo",
+  const et=LEGACY_STAGE[r.etapa]||r.etapa||"novo";
+  return {id:r.id,nome:r.nome||"",tel:r.tel||"",telFmt:r.telfmt||"",etapa:STAGE_BY[et]?et:"novo",
     nota:r.nota||"C",origem:r.origem||"",resumo:r.resumo||"",motivo:r.motivo||"",
     prox:r.prox||"",proxData:r.proxdata||"",risco:!!r.risco,quente:!!r.quente,
     primeiro:r.primeiro||"",ultimo:r.ultimo||"",msgs:r.msgs||0,resp:r.resp||0,
@@ -871,6 +972,30 @@ function writeAgenda(){
       pendingWrites--; if(pendingWrites<=0){pendingWrites=0; setSync("ok","salvo");}
     }catch(e){ pendingWrites=0; console.error(e); setSync("err","erro ao salvar — recarregue"); }
   },400);
+}
+function marcarOnb(id,step){
+  const c=allContacts()[id]; if(!c) return;
+  const passo=ONB.find(x=>x.k===step); if(!passo) return;
+  const notas=(c.notas||[]).concat([{t:`✓ Onboarding ${step.toUpperCase()}: ${passo.t}`,ts:todayISO,por:USER,tipo:"onb",step}]);
+  const patch={notas};
+  if(step==="d7") Object.assign(patch,{etapa:"cliente",prox:REGUA.cliente.prox,proxData:isoPlus(REGUA.cliente.dias)});
+  applyPatch(id,patch);
+  if(openId===id) renderDrawer(allContacts()[id]);
+}
+function patchEtapa(c,st){
+  const patch={etapa:st};
+  const r=REGUA[st];
+  if(st==="ativacao"){
+    if(!pagoEm(c)) patch.notas=(c.notas||[]).concat([{t:"💳 Pagou — início da ativação D0–D7",ts:todayISO,por:USER,tipo:"pago"}]);
+    patch.prox=""; patch.proxData=""; patch.nota="A";
+  } else if(r&&!c.prox&&!c.proxData){ patch.prox=r.prox; patch.proxData=isoPlus(r.dias); if(r.nota)patch.nota=r.nota; }
+  return patch;
+}
+function moverEtapa(id,st){
+  const c=allContacts()[id]; if(!c||c.etapa===st) return;
+  const patch=patchEtapa(c,st);
+  if(st==="cliente"&&c.etapa==="ativacao"){ patch.prox=REGUA.cliente.prox; patch.proxData=isoPlus(REGUA.cliente.dias); }
+  applyPatch(id,patch);
 }
 function concluirAcao(id){
   const c=allContacts()[id]; if(!c)return;
@@ -954,6 +1079,10 @@ document.getElementById("btnNovo").onclick=()=>{ if(!LOADED){alert("Ainda carreg
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeDrawer(); });
 
 elHoje.addEventListener("click",e=>{
+  const onb=e.target.closest("[data-onb]");
+  if(onb){ marcarOnb(onb.dataset.onb,onb.dataset.step); return; }
+  const atv=e.target.closest("[data-ativar]");
+  if(atv){ moverEtapa(atv.dataset.ativar,"cliente"); return; }
   const done=e.target.closest("[data-done]");
   if(done){ concluirAcao(done.dataset.done); return; }
   const adia=e.target.closest("[data-adia]");
@@ -1014,13 +1143,7 @@ elKanban.addEventListener("drop",e=>{
   e.preventDefault();
   const st=col.dataset.stage, id=dragId; dragId=null;
   col.classList.remove("dragover");
-  const c=allContacts()[id];
-  if(c&&c.etapa!==st){
-    const patch={etapa:st};
-    const r=REGUA[st];
-    if(r&&!c.prox&&!c.proxData){ patch.prox=r.prox; patch.proxData=isoPlus(r.dias); if(r.nota)patch.nota=r.nota; }
-    applyPatch(id,patch);
-  }
+  moverEtapa(id,st);
 });
 
 /* CSV */
