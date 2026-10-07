@@ -528,7 +528,7 @@ function agLinha(c,extra){
 }
 function renderHoje(){
   const all=Object.values(allContacts()).filter(c=>!c.arch);
-  const hoje=all.filter(c=>c.proxData===todayISO).sort(sortCards);
+  const hoje=all.filter(c=>c.proxData===todayISO).sort((a,b)=>((b.risco?2:0)+(b.quente?1:0))-((a.risco?2:0)+(a.quente?1:0)));
   const atras=all.filter(c=>c.proxData&&c.proxData<todayISO).sort((a,b)=>a.proxData<b.proxData?-1:1);
   const sugs=sugestoesDoDia();
   const rot=rotinaDoDia();
